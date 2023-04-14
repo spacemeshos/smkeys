@@ -41,10 +41,8 @@ func main() {
 	const arrayLen = 64
 
 	// Convert the *mut u8 pointer to a Go byte slice
-	byteSlice := (*[1 << 30]byte)(unsafe.Pointer(arrayPtr))[:arrayLen:arrayLen]
-	bytes := (*[arrayLen]uint8)(unsafe.Pointer(arrayPtr))[:]
+	bytes := (*[arrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
 
 	// Access the byte array in Go
-	fmt.Println("Received byte array:", byteSlice)
 	fmt.Println("Received byte array:", bytes)
 }
