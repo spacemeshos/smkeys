@@ -1,8 +1,8 @@
 package main
 
 /*
-#cgo CFLAGS: -I./ed25519_bip32_wasm/
-#cgo LDFLAGS: -L./ed25519_bip32_wasm/ -led25519_bip32
+#cgo CFLAGS: -I.
+#cgo LDFLAGS: -L. -led25519_bip32
 #include <stdlib.h>
 #include <stdint.h>
 
