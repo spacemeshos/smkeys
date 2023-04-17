@@ -167,3 +167,10 @@ func TestSimpleChild(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "00b4b57f20439c858cd66edaa77fa6b56fd4b8617a614e97829aedcc31aa82a0ee75ecabd996fc882b1b7b13c4bcabc256d123ade062ee767b41ac1a489d04d9", hex.EncodeToString(key[:]))
 }
+
+func TestFromSeed(t *testing.T) {
+	seed := []byte("hello world")
+	key, err := FromSeed(seed)
+	require.NoError(t, err)
+	require.Equal(t, "309649976bcd6a2f5e8247ca5cf72c566d8d6d2211eb471ca65b542c2635106f4ab69140806a86f8ac278e437dd1703cbc088a35528f39a0115c19a9e1f9ac87", hex.EncodeToString(key[:]))
+}
