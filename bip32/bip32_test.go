@@ -10,14 +10,14 @@ import (
 func TestGoodPath(t *testing.T) {
 	path := "m/44'/540'/2'/0'/0'"
 	seed := []byte("hello world")
-	_, err := DeriveKey(path, seed)
+	_, err := Derive(path, seed)
 	require.NoError(t, err)
 }
 
 func TestBadPath(t *testing.T) {
 	path := "bad path"
 	seed := []byte("hello world")
-	key, err := DeriveKey(path, seed)
+	key, err := Derive(path, seed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
@@ -25,7 +25,7 @@ func TestBadPath(t *testing.T) {
 func TestEmptyPath(t *testing.T) {
 	path := ""
 	seed := []byte("hello world")
-	key, err := DeriveKey(path, seed)
+	key, err := Derive(path, seed)
 	require.Equal(t, pathErr, err)
 	require.Nil(t, key)
 }
@@ -33,7 +33,7 @@ func TestEmptyPath(t *testing.T) {
 func TestEmptySeed(t *testing.T) {
 	path := "hello world"
 	var seed []byte
-	key, err := DeriveKey(path, seed)
+	key, err := Derive(path, seed)
 	require.Equal(t, seedErr, err)
 	require.Nil(t, key)
 }
@@ -41,7 +41,7 @@ func TestEmptySeed(t *testing.T) {
 func TestNonHardenedPath(t *testing.T) {
 	path := "m/44'/540'/2/0'/0'"
 	seed := []byte("hello world")
-	key, err := DeriveKey(path, seed)
+	key, err := Derive(path, seed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
@@ -49,12 +49,12 @@ func TestNonHardenedPath(t *testing.T) {
 func TestPathMalformed(t *testing.T) {
 	path := "m/44'/540'/2'/0'/"
 	seed := []byte("hello world")
-	key, err := DeriveKey(path, seed)
+	key, err := Derive(path, seed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 	path = "m/44'/540'/2'/0'/1'/"
 	seed = []byte("hello world")
-	key, err = DeriveKey(path, seed)
+	key, err = Derive(path, seed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
@@ -62,37 +62,38 @@ func TestPathMalformed(t *testing.T) {
 func TestPathShort(t *testing.T) {
 	path := "m/44'/540'/2'/0'"
 	seed := []byte("hello world")
-	_, err := DeriveKey(path, seed)
-	require.NoError(t, err)
+	key, err := Derive(path, seed)
+	require.Equal(t, pointerErr, err)
+	require.Nil(t, key)
 	path = "m/44'/540'/2'"
-	_, err = DeriveKey(path, seed)
-	require.NoError(t, err)
+	key, err = Derive(path, seed)
+	require.Equal(t, pointerErr, err)
+	require.Nil(t, key)
 }
 
 func TestPathLong(t *testing.T) {
 	path := "m/44'/540'/2'/0'/1'/2'"
 	seed := []byte("hello world")
-	_, err := DeriveKey(path, seed)
-	require.NoError(t, err)
+	key, err := Derive(path, seed)
+	require.Equal(t, pointerErr, err)
+	require.Nil(t, key)
 }
 
-// We currently allow these.
-// TODO: do we want to prevent these?
-//func TestPathBadReason(t *testing.T) {
-//	path := "m/41'/540'/2'/0'/1'"
-//	seed := []byte("hello world")
-//	key, err := DeriveKey(path, seed)
-//	require.Equal(t, pointerErr, err)
-//	require.Nil(t, key)
-//}
-//
-//func TestPathBadChaincode(t *testing.T) {
-//	path := "m/44'/542'/2'/0'/1'"
-//	seed := []byte("hello world")
-//	key, err := DeriveKey(path, seed)
-//	require.Equal(t, pointerErr, err)
-//	require.Nil(t, key)
-//}
+func TestPathBadPurpose(t *testing.T) {
+	path := "m/41'/540'/2'/0'/1'"
+	seed := []byte("hello world")
+	key, err := Derive(path, seed)
+	require.Equal(t, pointerErr, err)
+	require.Nil(t, key)
+}
+
+func TestPathBadCoinType(t *testing.T) {
+	path := "m/44'/542'/2'/0'/1'"
+	seed := []byte("hello world")
+	key, err := Derive(path, seed)
+	require.Equal(t, pointerErr, err)
+	require.Nil(t, key)
+}
 
 func TestSimple(t *testing.T) {
 	// Test vectors
@@ -132,30 +133,37 @@ func TestSimple(t *testing.T) {
 			"goodbye world",
 			"304ccb96364ca1c6f56b9f1ee645ea0c0d6d31d29723c5ab3ec673242cdcb995e9cc5f5a18130d3208cd56079f4250da97dcc3c8cf60c9cc463321d92c83056f",
 		},
-		{
-			"m/44'/540'/1'/0'/0'/0'",
-			"goodbye world",
-			"0bbc325b65ff280134dd961f001803bcf9bb935a1dfd0b3aaa636fb3e77b3576d5b021bd2424066d2af34d78003c3d780d89742cb7ce697d3fae6c901b58ba81",
-		},
+		//{
+		//	"m/44'/540'/1'/0'/0'/0'",
+		//	"goodbye world",
+		//	"0bbc325b65ff280134dd961f001803bcf9bb935a1dfd0b3aaa636fb3e77b3576d5b021bd2424066d2af34d78003c3d780d89742cb7ce697d3fae6c901b58ba81",
+		//},
 		{
 			"m/44'/540'/1'/1'/2'",
 			"what a wonderful world",
 			"2e72f645bf1a24aee0dc467988f8bf0e284a205144919645351f3dc461bebba52e98256e26223678c5c2ea065f92abc3f9821032ed42286570536da38bce4862",
 		},
-		{
-			"m/44'/540'/1'/0'",
-			"what a wonderful world",
-			"f2b16f208262a3fb6476b30727f3c96b5f3517ac0404f88fe8d5e74ed7796f5918a42b368e4ba042886186abd6b67e2eab1d6c54ffe47cf200658a1e06777d1d",
-		},
-		{
-			"m/44'/540'/1'",
-			"what a wonderful world",
-			"06deb1d30a0621f963059b1178bc9fbac84ee9ab9ccb24463f541b023011ef81aae8b6ae91c5fe6701151bb571f39f3161decb1535e61a5b4bfe908319e5348c",
-		},
+		//{
+		//	"m/44'/540'/1'/0'",
+		//	"what a wonderful world",
+		//	"f2b16f208262a3fb6476b30727f3c96b5f3517ac0404f88fe8d5e74ed7796f5918a42b368e4ba042886186abd6b67e2eab1d6c54ffe47cf200658a1e06777d1d",
+		//},
+		//{
+		//	"m/44'/540'/1'",
+		//	"what a wonderful world",
+		//	"06deb1d30a0621f963059b1178bc9fbac84ee9ab9ccb24463f541b023011ef81aae8b6ae91c5fe6701151bb571f39f3161decb1535e61a5b4bfe908319e5348c",
+		//},
 	}
 	for i, vec := range vectors {
-		key, err := DeriveKey(vec.path, []byte(vec.seed))
+		key, err := Derive(vec.path, []byte(vec.seed))
 		require.NoError(t, err)
 		require.Equalf(t, vec.key, hex.EncodeToString(key[:]), "test case %d path %s seed %s got unexpected result", i, vec.path, vec.seed)
 	}
+}
+
+func TestSimpleChild(t *testing.T) {
+	seed := []byte("hello world")
+	key, err := DeriveChild(seed, 0)
+	require.NoError(t, err)
+	require.Equal(t, "00b4b57f20439c858cd66edaa77fa6b56fd4b8617a614e97829aedcc31aa82a0ee75ecabd996fc882b1b7b13c4bcabc256d123ade062ee767b41ac1a489d04d9", hex.EncodeToString(key[:]))
 }

@@ -1,18 +1,25 @@
 package bip32
 
+// TODO: is it possible to read the C header info from the header file rather than hardcoding it here?
+
 /*
    #cgo CFLAGS: -I..
    #cgo LDFLAGS: -L.. -led25519_bip32
    #include <stdlib.h>
    #include <stdint.h>
 
-   // Declare the Rust function "derive_key_c" here
-   extern uint8_t *derive_key_c(const uint8_t *seed,
-   					  uintptr_t seedlen,
-   					  const uint8_t *path,
-   					  uintptr_t pathlen);
+   /// derive_c does the same thing as the above function, but is intended for use over the CFFI.
+   /// it adds error handling in order to be friendlier to the FFI caller: in case of an error, it
+   /// prints the error and returns a null pointer.
+   /// note that the caller must free() the returned memory as it's not managed/freed here.
+   extern uint8_t *derive_c(const uint8_t *seed, size_t seedlen, const uint8_t *path, size_t pathlen);
 
-   // Declare the C standard library function "free" here
+   /// derive_child_c derives a new child key from a seed and a single hardened path element.
+   /// the childidx always refers to a hardened path element, as we do not support non-hardened paths.
+   /// note that the caller must free() the returned memory as it's not managed/freed here.
+   extern uint8_t *derive_child_c(const uint8_t *seed, size_t seedlen, uint8_t childidx);
+
+   // the C standard library function "free"
    extern void free(void*);
 
 */
@@ -33,8 +40,8 @@ var (
 	pointerErr = fmt.Errorf("error in wrapped function, got nil pointer")
 )
 
-// DeriveKey wraps the underlying CFFI function. It accepts a path and a seed and returns a derived keypair.
-func DeriveKey(path string, seed []byte) (key *[ArrayLen]byte, err error) {
+// Derive wraps the underlying CFFI function. It derives a new keypair from a path and a seed.
+func Derive(path string, seed []byte) (key *[ArrayLen]byte, err error) {
 	pathLen := len(path)
 	seedLen := len(seed)
 
@@ -51,11 +58,42 @@ func DeriveKey(path string, seed []byte) (key *[ArrayLen]byte, err error) {
 	pathBytes := []byte(path)
 
 	// Pass the string to Rust
-	arrayPtr := C.derive_key_c(
+	arrayPtr := C.derive_c(
 		(*C.uchar)(unsafe.Pointer(&seed[0])),
 		C.size_t(seedLen),
 		(*C.uchar)(unsafe.Pointer(&pathBytes[0])),
 		C.size_t(pathLen),
+	)
+	if arrayPtr == nil {
+		return nil, pointerErr
+	}
+	defer C.free(unsafe.Pointer(arrayPtr))
+
+	// Convert the *mut u8 pointer to a Go byte slice
+	bytes := (*[ArrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
+	key = new([ArrayLen]byte)
+	bytesCopied := copy(key[:], bytes)
+	if bytesCopied != ArrayLen {
+		return nil, fmt.Errorf("error in key length")
+	}
+	return
+}
+
+// DeriveChild wraps the underlying CFFI function. It derives a new keypair from a seed and a single path component.
+func DeriveChild(seed []byte, childIdx uint32) (key *[ArrayLen]byte, err error) {
+	seedLen := len(seed)
+
+	// empty seed will both cause downstream errors, go ahead and catch it here.
+	// TODO: do we want to allow empty seed?
+	if seedLen < 1 {
+		return nil, pathErr
+	}
+
+	// Pass the string to Rust
+	arrayPtr := C.derive_child_c(
+		(*C.uchar)(unsafe.Pointer(&seed[0])),
+		C.size_t(seedLen),
+		C.uchar(childIdx),
 	)
 	if arrayPtr == nil {
 		return nil, pointerErr
