@@ -3,28 +3,27 @@ package bip32
 // TODO: is it possible to read the C header info from the header file rather than hardcoding it here?
 
 /*
-   #cgo CFLAGS: -I..
-   #cgo LDFLAGS: -L.. -led25519_bip32
-   #include <stdlib.h>
-   #include <stdint.h>
+	#cgo CFLAGS: -I..
+	#cgo LDFLAGS: -L.. -led25519_bip32
+	#include <stdint.h>
 
-   /// from_seed_c derives a new extended secret key from a seed
-   extern uint8_t *from_seed_c(const uint8_t *seed, size_t seedlen);
+	/// derive_c does the same thing as the above function, but is intended for use over the CFFI.
+	/// it adds error handling in order to be friendlier to the FFI caller: in case of an error, it
+	/// prints the error and returns a null pointer.
+	/// note that the caller must free() the returned memory as it's not managed/freed here.
+	extern uint8_t *derive_c(const uint8_t *seed, size_t seedlen, const uint8_t *path, size_t pathlen);
 
-   /// derive_c does the same thing as the above function, but is intended for use over the CFFI.
-   /// it adds error handling in order to be friendlier to the FFI caller: in case of an error, it
-   /// prints the error and returns a null pointer.
-   /// note that the caller must free() the returned memory as it's not managed/freed here.
-   extern uint8_t *derive_c(const uint8_t *seed, size_t seedlen, const uint8_t *path, size_t pathlen);
+	/// derive_child_c derives a new child key from a seed and a single hardened path element.
+	/// the childidx always refers to a hardened path element, as we do not support non-hardened paths.
+	/// note that the caller must free() the returned memory as it's not managed/freed here.
+	extern uint8_t *derive_child_c(const uint8_t *seed, size_t seedlen, uint32_t childidx);
 
-   /// derive_child_c derives a new child key from a seed and a single hardened path element.
-   /// the childidx always refers to a hardened path element, as we do not support non-hardened paths.
-   /// note that the caller must free() the returned memory as it's not managed/freed here.
-   extern uint8_t *derive_child_c(const uint8_t *seed, size_t seedlen, uint8_t childidx);
+	/// free the memory allocated and returned by the derive functions by transferring ownership back to
+	/// Rust. must be called on each pointer returned by the functions precisely once to ensure safety.
+	extern void derive_free_c(uint8_t *ptr);
 
-   // the C standard library function "free"
-   extern void free(void*);
-
+	/// from_seed_c derives a new extended secret key from a seed
+	extern uint8_t *from_seed_c(const uint8_t *seed, size_t seedlen);
 */
 import "C"
 import (
@@ -61,7 +60,7 @@ func FromSeed(seed []byte) (key *[ArrayLen]byte, err error) {
 	if arrayPtr == nil {
 		return nil, pointerErr
 	}
-	defer C.free(unsafe.Pointer(arrayPtr))
+	defer C.derive_free_c(arrayPtr)
 
 	// Convert the *mut u8 pointer to a Go byte slice
 	bytes := (*[ArrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
@@ -100,7 +99,7 @@ func Derive(path string, seed []byte) (key *[ArrayLen]byte, err error) {
 	if arrayPtr == nil {
 		return nil, pointerErr
 	}
-	defer C.free(unsafe.Pointer(arrayPtr))
+	defer C.derive_free_c(arrayPtr)
 
 	// Convert the *mut u8 pointer to a Go byte slice
 	bytes := (*[ArrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
@@ -126,12 +125,12 @@ func DeriveChild(seed []byte, childIdx uint32) (key *[ArrayLen]byte, err error) 
 	arrayPtr := C.derive_child_c(
 		(*C.uchar)(unsafe.Pointer(&seed[0])),
 		C.size_t(seedLen),
-		C.uchar(childIdx),
+		C.uint(childIdx),
 	)
 	if arrayPtr == nil {
 		return nil, pointerErr
 	}
-	defer C.free(unsafe.Pointer(arrayPtr))
+	defer C.derive_free_c(arrayPtr)
 
 	// Convert the *mut u8 pointer to a Go byte slice
 	bytes := (*[ArrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
