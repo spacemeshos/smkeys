@@ -21,6 +21,9 @@ jobs:
         with:
           go-version: ${{ env.go-version }}
 
+      - name: get dependencies
+        run: make deps
+
       - name: build
         run: go build -v ./...
 
