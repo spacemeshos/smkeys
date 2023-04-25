@@ -2,30 +2,30 @@ package bip32
 
 import (
 	"encoding/hex"
+	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
+var goodSeed = []byte("seedlen seedlen seedlen seedlen seedlen seedlen seedlen seedlen ")
+
 func TestGoodPath(t *testing.T) {
 	path := "m/44'/540'/2'/0'/0'"
-	seed := []byte("hello world")
-	_, err := Derive(path, seed)
+	_, err := Derive(path, goodSeed)
 	require.NoError(t, err)
 }
 
 func TestBadPath(t *testing.T) {
 	path := "bad path"
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestEmptyPath(t *testing.T) {
 	path := ""
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pathErr, err)
 	require.Nil(t, key)
 }
@@ -34,143 +34,151 @@ func TestEmptySeed(t *testing.T) {
 	path := "hello world"
 	var seed []byte
 	key, err := Derive(path, seed)
-	require.Equal(t, seedErr, err)
+	require.Equal(t, badSeedLen, err)
+	require.Nil(t, key)
+}
+
+func TestSeedLength(t *testing.T) {
+	path := "hello world"
+	seedTooShort := goodSeed[:len(goodSeed)-1]
+	key, err := Derive(path, seedTooShort)
+	require.Equal(t, badSeedLen, err)
+	require.Nil(t, key)
+	seedTooLong := append(goodSeed, byte(1))
+	key, err = Derive(path, seedTooLong)
+	require.Equal(t, badSeedLen, err)
 	require.Nil(t, key)
 }
 
 func TestNonHardenedPath(t *testing.T) {
 	path := "m/44'/540'/2/0'/0'"
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathMalformed(t *testing.T) {
 	path := "m/44'/540'/2'/0'/"
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 	path = "m/44'/540'/2'/0'/1'/"
-	seed = []byte("hello world")
-	key, err = Derive(path, seed)
+	key, err = Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathShort(t *testing.T) {
-	path := "m/44'/540'/2'/0'"
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	path := "m/44'"
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
-	path = "m/44'/540'/2'"
-	key, err = Derive(path, seed)
+	path = "m"
+	key, err = Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathLong(t *testing.T) {
 	path := "m/44'/540'/2'/0'/1'/2'"
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathBadPurpose(t *testing.T) {
 	path := "m/41'/540'/2'/0'/1'"
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathBadCoinType(t *testing.T) {
 	path := "m/44'/542'/2'/0'/1'"
-	seed := []byte("hello world")
-	key, err := Derive(path, seed)
+	key, err := Derive(path, goodSeed)
 	require.Equal(t, pointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestSimple(t *testing.T) {
+	seed1 := "q9ONfCHWlAwY5Ea4AIkePeA0dUSYnyqcNVElvREhYJ0OU7kvwg9MroDKTcmSxTKt"
+	seed2 := "gk3YIKmq0j5rqjLBrJVaQfC6k7rIHLp96G2ZGEg1vl0cwv7LNsjOaPOTAJEzmWVi"
+	seed3 := "wZtfpYa1lzcdHTp9UwdbzTLlMnFTZee5Y7dLN7e795Kfr4U1E7AQaUcqGnMNEraR"
 	// Test vectors
 	vectors := []struct{ path, seed, key string }{
 		{
 			"m/44'/540'/2'/0'/0'",
-			"hello world",
-			"7158d5bcf4a5811ff0a81bbad619e140ea2c0f46224d5ee54bc257faa4e34785a9dde42835b420a93956b8cfc26945a97d99f676a4c0b5ced0081c2e39b2c5e5",
+			seed1,
+			"02c6197bee36ee341f1bad9bbb26b71b9b51c78f4a6aebd722d6ccda9dbfc7a6cabdd9afe0274ba6eb6b4ea6b04f5110e13321ae3c1316482aace2a8bff26c89",
 		},
 		{
 			"m/44'/540'/1'/0'/0'",
-			"hello world",
-			"ea9a4a7d7ced401b6f0bef20c4cc9dc726723191ae96487a473fda91c3f988189c2139abee768f643bcb2dae38d970ae32b682e8e328c8d34d894cd22373da15",
+			seed1,
+			"856761857b51d7ab4c8e86fbabe1fbdce2eb2851cc70389ee914a375617daaa86cb278b215158b31b6f96f0516f05d52d416f179758858f329ae9a08995ffef9",
 		},
 		{
 			"m/44'/540'/1'/1'/1'",
-			"hello world",
-			"77d785e700e30ccc28ae59de74dd31d5a14674f4ded114263caebdaebad67cc5b1dc7675098476bdddcfa7c02d16daf6e8c9a748c3c2141e040931ec7f9b6ec6",
+			seed1,
+			"417f8cf19c44bc3398fa789bb1d0697c56c872c4702bfacaffa6b4132f39119b4562f9f55ea6836f451100ceac42be3cb9f0022b5677d12460c09651b05d160c",
 		},
 		{
 			"m/44'/540'/100'/0'/0'",
-			"hello world",
-			"d1b593331f9c8c8ece8db6e755a3eeab1e5989a349aab80e136590c23ad606ed22b9c319998614a0869ddd49f31b4d2f56035cc935b0e38201e470467346a0ad",
+			seed1,
+			"39a84a1eed038a9560529646615a512847a09de0ba52b5b388c5aa949a8a77c0d08480429cc3c12c15b6abf14276967069eec285a264beaac23acf3789c25932",
 		},
 		{
 			"m/44'/540'/2'/100'/200'",
-			"hello world",
-			"a22ccc3e60f5bb17173a9326beead0e9607989a0ac03e93f5dd378eab34382e9703aa6a75c658dff490ebd34cfac9cd71bf75ad87adec4407fcd66458bf1bc5f",
+			seed1,
+			"bf04d7fcc2cd70904b119e67a20c33039cf5355b2837ddabe28a4a53d0df6b830046e8f9a1150560bdba11cd8e3ae652cd4f77de6603ab8ad964a775ed55f9da",
 		},
 		{
 			"m/44'/540'/0'/0'/0'",
-			"goodbye world",
-			"f06132d2c4bf8b8c46d1848ef14d99df5444bd194b8f894fc9373e7b4f2f4fe7fe6bed30f5839c2a49d588a82696bee203244f88549b0d088a28a04d1ba829ab",
+			seed2,
+			"477179d9a8a3571aa068d7a10da60cae617f3eb232b493bfd079842c3f0e69662978db84488e3644a6a986dd52622440a0441206e4c24a24f115336819fecaa7",
 		},
 		{
 			"m/44'/540'/1'/0'/0'",
-			"goodbye world",
-			"304ccb96364ca1c6f56b9f1ee645ea0c0d6d31d29723c5ab3ec673242cdcb995e9cc5f5a18130d3208cd56079f4250da97dcc3c8cf60c9cc463321d92c83056f",
+			seed2,
+			"14d2c7daefe19e395328efcbcefbbb854d73890a77bb300ee310a71d0ea76826c106af1346f27fbb9f4623e9cc362fd3c9ad6e139652685e30f35794d52d190d",
 		},
-		//{
-		//	"m/44'/540'/1'/0'/0'/0'",
-		//	"goodbye world",
-		//	"0bbc325b65ff280134dd961f001803bcf9bb935a1dfd0b3aaa636fb3e77b3576d5b021bd2424066d2af34d78003c3d780d89742cb7ce697d3fae6c901b58ba81",
-		//},
 		{
 			"m/44'/540'/1'/1'/2'",
-			"what a wonderful world",
-			"2e72f645bf1a24aee0dc467988f8bf0e284a205144919645351f3dc461bebba52e98256e26223678c5c2ea065f92abc3f9821032ed42286570536da38bce4862",
+			seed3,
+			"81e65d2c6806d32a223a64200c22217408a071896cab6e657e729d724295013e47f73f6b47a70373961a41cdc8130ac7a5887ec18ecf32237ca8cb6e7ba069b9",
 		},
-		//{
-		//	"m/44'/540'/1'/0'",
-		//	"what a wonderful world",
-		//	"f2b16f208262a3fb6476b30727f3c96b5f3517ac0404f88fe8d5e74ed7796f5918a42b368e4ba042886186abd6b67e2eab1d6c54ffe47cf200658a1e06777d1d",
-		//},
-		//{
-		//	"m/44'/540'/1'",
-		//	"what a wonderful world",
-		//	"06deb1d30a0621f963059b1178bc9fbac84ee9ab9ccb24463f541b023011ef81aae8b6ae91c5fe6701151bb571f39f3161decb1535e61a5b4bfe908319e5348c",
-		//},
+		{
+			"m/44'/540'/1'/0'",
+			seed1,
+			"03d65083ada328fa74637cc8588ddc80ef6fd732e60e84715c551221c2313b88fb53139aa915339ec0250a47725345b11c79cf9a39437e8dcd107cf17ab7416d",
+		},
+		{
+			"m/44'/540'/1'",
+			seed2,
+			"1831d61e76a8706f20614b96b74b50b2214a2bbf398735dd10c720d214b78c0c2e318aefd286a646ec9c6313bb036132e4893f4985c1ed99d54a555f1a7b72b0",
+		},
 	}
 	for i, vec := range vectors {
 		key, err := Derive(vec.path, []byte(vec.seed))
 		require.NoError(t, err)
-		require.Equalf(t, vec.key, hex.EncodeToString(key[:]), "test case %d path %s seed %s got unexpected result", i, vec.path, vec.seed)
+		assert.Equalf(t, vec.key, hex.EncodeToString(key[:]), "test case %d path %s seed %s got unexpected result", i, vec.path, vec.seed)
 	}
 }
 
-func TestSimpleChild(t *testing.T) {
-	seed := []byte("hello world")
-	key, err := DeriveChild(seed, 0)
-	require.NoError(t, err)
-	require.Equal(t, "00b4b57f20439c858cd66edaa77fa6b56fd4b8617a614e97829aedcc31aa82a0ee75ecabd996fc882b1b7b13c4bcabc256d123ade062ee767b41ac1a489d04d9", hex.EncodeToString(key[:]))
-}
-
-func TestFromSeed(t *testing.T) {
-	seed := []byte("hello world")
-	key, err := FromSeed(seed)
-	require.NoError(t, err)
-	require.Equal(t, "309649976bcd6a2f5e8247ca5cf72c566d8d6d2211eb471ca65b542c2635106f4ab69140806a86f8ac278e437dd1703cbc088a35528f39a0115c19a9e1f9ac87", hex.EncodeToString(key[:]))
-}
+//func TestSimpleChild(t *testing.T) {
+//	seed := []byte("hello world")
+//	key, err := DeriveChild(seed, 0)
+//	require.NoError(t, err)
+//	require.Equal(t, "00b4b57f20439c858cd66edaa77fa6b56fd4b8617a614e97829aedcc31aa82a0ee75ecabd996fc882b1b7b13c4bcabc256d123ade062ee767b41ac1a489d04d9", hex.EncodeToString(key[:]))
+//}
+//
+//// Test that deriving a full-path key in one step produces the same result from deriving one in two steps
+//func TestIncrementalDerivation(t *testing.T) {
+//	seed := []byte("hello world")
+//	key, err := FromSeed(seed)
+//	require.NoError(t, err)
+//	require.Equal(t, "309649976bcd6a2f5e8247ca5cf72c566d8d6d2211eb471ca65b542c2635106f4ab69140806a86f8ac278e437dd1703cbc088a35528f39a0115c19a9e1f9ac87", hex.EncodeToString(key[:]))
+//
+//	// now derive a child key
+//	path := "m/44'/540'/0'/0'/0'"
+//	key, err = DeriveChild()
+//}

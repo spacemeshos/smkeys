@@ -13,17 +13,9 @@ package bip32
 	/// note that the caller must free() the returned memory as it's not managed/freed here.
 	extern uint8_t *derive_c(const uint8_t *seed, size_t seedlen, const uint8_t *path, size_t pathlen);
 
-	/// derive_child_c derives a new child key from a seed and a single hardened path element.
-	/// the childidx always refers to a hardened path element, as we do not support non-hardened paths.
-	/// note that the caller must free() the returned memory as it's not managed/freed here.
-	extern uint8_t *derive_child_c(const uint8_t *seed, size_t seedlen, uint32_t childidx);
-
 	/// free the memory allocated and returned by the derive functions by transferring ownership back to
 	/// Rust. must be called on each pointer returned by the functions precisely once to ensure safety.
 	extern void derive_free_c(uint8_t *ptr);
-
-	/// from_seed_c derives a new extended secret key from a seed
-	extern uint8_t *from_seed_c(const uint8_t *seed, size_t seedlen);
 */
 import "C"
 import (
@@ -36,54 +28,28 @@ import (
 // TODO: can we read this from somewhere?
 const ArrayLen = 64
 
+// Bip39SeedLen is the expected length of a BIP39-compatible seed. This is specified in the BIP itself.
+const Bip39SeedLen = 64
+
 var (
 	pathErr    = fmt.Errorf("empty path supplied")
-	seedErr    = fmt.Errorf("empty seed supplied")
+	badSeedLen = fmt.Errorf("invalid seed length")
 	pointerErr = fmt.Errorf("error in wrapped function, got nil pointer")
 )
-
-// FromSeed wraps the underlying CFFI function. It derives a new keypair from a seed.
-func FromSeed(seed []byte) (key *[ArrayLen]byte, err error) {
-	seedLen := len(seed)
-
-	// empty seed will both cause downstream errors, go ahead and catch it here.
-	// TODO: do we want to allow empty seed?
-	if seedLen < 1 {
-		return nil, pathErr
-	}
-
-	// Pass the string to Rust
-	arrayPtr := C.from_seed_c(
-		(*C.uchar)(unsafe.Pointer(&seed[0])),
-		C.size_t(seedLen),
-	)
-	if arrayPtr == nil {
-		return nil, pointerErr
-	}
-	defer C.derive_free_c(arrayPtr)
-
-	// Convert the *mut u8 pointer to a Go byte slice
-	bytes := (*[ArrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
-	key = new([ArrayLen]byte)
-	bytesCopied := copy(key[:], bytes)
-	if bytesCopied != ArrayLen {
-		return nil, fmt.Errorf("error in key length")
-	}
-	return
-}
 
 // Derive wraps the underlying CFFI function. It derives a new keypair from a path and a seed.
 func Derive(path string, seed []byte) (key *[ArrayLen]byte, err error) {
 	pathLen := len(path)
 	seedLen := len(seed)
 
-	// empty path and empty seed will both cause downstream errors, go ahead and catch them here.
-	// TODO: do we want to allow empty seed?
+	// empty path and empty seed will both cause upstream errors, go ahead and catch them here.
+	// note: we don't attempt to actually parse the path here. if it contains less than two elements
+	// that will also cause upstream errors.
 	if pathLen < 1 {
 		return nil, pathErr
 	}
-	if seedLen < 1 {
-		return nil, seedErr
+	if seedLen != Bip39SeedLen {
+		return nil, badSeedLen
 	}
 
 	// Convert Go string to C-compatible byte array
@@ -95,37 +61,6 @@ func Derive(path string, seed []byte) (key *[ArrayLen]byte, err error) {
 		C.size_t(seedLen),
 		(*C.uchar)(unsafe.Pointer(&pathBytes[0])),
 		C.size_t(pathLen),
-	)
-	if arrayPtr == nil {
-		return nil, pointerErr
-	}
-	defer C.derive_free_c(arrayPtr)
-
-	// Convert the *mut u8 pointer to a Go byte slice
-	bytes := (*[ArrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
-	key = new([ArrayLen]byte)
-	bytesCopied := copy(key[:], bytes)
-	if bytesCopied != ArrayLen {
-		return nil, fmt.Errorf("error in key length")
-	}
-	return
-}
-
-// DeriveChild wraps the underlying CFFI function. It derives a new keypair from a seed and a single path component.
-func DeriveChild(seed []byte, childIdx uint32) (key *[ArrayLen]byte, err error) {
-	seedLen := len(seed)
-
-	// empty seed will both cause downstream errors, go ahead and catch it here.
-	// TODO: do we want to allow empty seed?
-	if seedLen < 1 {
-		return nil, pathErr
-	}
-
-	// Pass the string to Rust
-	arrayPtr := C.derive_child_c(
-		(*C.uchar)(unsafe.Pointer(&seed[0])),
-		C.size_t(seedLen),
-		C.uint(childIdx),
 	)
 	if arrayPtr == nil {
 		return nil, pointerErr
