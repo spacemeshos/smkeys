@@ -1,4 +1,4 @@
-module smkeys
+module github.com/spacemeshos/smkeys
 
 go 1.19
 
