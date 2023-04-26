@@ -1,3 +1,0 @@
-[submodule "ed25519_bip32_wasm"]
-	path = ed25519_bip32_wasm
-	url = https://github.com/spacemeshos/ed25519_bip32_wasm.git

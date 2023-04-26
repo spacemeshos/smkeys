@@ -2,7 +2,6 @@ package bip32
 
 import (
 	"encoding/hex"
-	"github.com/stretchr/testify/assert"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -160,25 +159,6 @@ func TestSimple(t *testing.T) {
 	for i, vec := range vectors {
 		key, err := Derive(vec.path, []byte(vec.seed))
 		require.NoError(t, err)
-		assert.Equalf(t, vec.key, hex.EncodeToString(key[:]), "test case %d path %s seed %s got unexpected result", i, vec.path, vec.seed)
+		require.Equalf(t, vec.key, hex.EncodeToString(key[:]), "test case %d path %s seed %s got unexpected result", i, vec.path, vec.seed)
 	}
 }
-
-//func TestSimpleChild(t *testing.T) {
-//	seed := []byte("hello world")
-//	key, err := DeriveChild(seed, 0)
-//	require.NoError(t, err)
-//	require.Equal(t, "00b4b57f20439c858cd66edaa77fa6b56fd4b8617a614e97829aedcc31aa82a0ee75ecabd996fc882b1b7b13c4bcabc256d123ade062ee767b41ac1a489d04d9", hex.EncodeToString(key[:]))
-//}
-//
-//// Test that deriving a full-path key in one step produces the same result from deriving one in two steps
-//func TestIncrementalDerivation(t *testing.T) {
-//	seed := []byte("hello world")
-//	key, err := FromSeed(seed)
-//	require.NoError(t, err)
-//	require.Equal(t, "309649976bcd6a2f5e8247ca5cf72c566d8d6d2211eb471ca65b542c2635106f4ab69140806a86f8ac278e437dd1703cbc088a35528f39a0115c19a9e1f9ac87", hex.EncodeToString(key[:]))
-//
-//	// now derive a child key
-//	path := "m/44'/540'/0'/0'/0'"
-//	key, err = DeriveChild()
-//}
