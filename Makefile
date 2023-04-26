@@ -1,7 +1,7 @@
 # Based on https://gist.github.com/trosendal/d4646812a43920bfe94e
 
 DEPLOC = https://github.com/spacemeshos/ed25519_bip32/releases/download
-DEPTAG = 1.0.3
+DEPTAG = 1.0.6
 DEPLIB = libed25519_bip32
 
 ifeq ($(OS),Windows_NT)
