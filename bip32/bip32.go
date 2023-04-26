@@ -3,8 +3,8 @@ package bip32
 // TODO: is it possible to read the C header info from the header file rather than hardcoding it here?
 
 /*
-	#cgo CFLAGS: -I..
-	#cgo LDFLAGS: -L.. -led25519_bip32
+	#cgo CFLAGS: -I../deps
+	#cgo LDFLAGS: -L../deps -led25519_bip32
 	#include <stdint.h>
 
 	/// derive_c does the same thing as the above function, but is intended for use over the CFFI.
