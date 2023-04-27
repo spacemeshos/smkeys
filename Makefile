@@ -1,8 +1,9 @@
 # Based on https://gist.github.com/trosendal/d4646812a43920bfe94e
 
-DEPLOC = https://github.com/spacemeshos/ed25519_bip32/releases/download
+DEPURL = https://github.com/spacemeshos/ed25519_bip32/releases/download
 DEPTAG = 1.0.6
 DEPLIB = libed25519_bip32
+DEPDIR = deps
 
 ifeq ($(OS),Windows_NT)
 #    MACHINE = WIN32
@@ -37,7 +38,13 @@ FN = $(DEPLIB)_$(PLATFORM).tar.gz
 # Download the platform-specific dynamic library we rely on
 .PHONY: deps
 deps:
-	@mkdir -p deps
+	@mkdir -p $(DEPDIR)
 	@# silent, show errors, fail fast, follow links
-	curl -sSfL $(DEPLOC)/v$(DEPTAG)/$(FN) -o deps/$(FN)
-	cd deps && tar -xzf $(FN) --exclude=LICENSE
+	curl -sSfL $(DEPURL)/v$(DEPTAG)/$(FN) -o deps/$(FN)
+	cd $(DEPDIR) && tar -xzf $(FN) --exclude=LICENSE
+
+REALDEPDIR = $(shell realpath $(DEPDIR))
+
+.PHONY: test
+test:
+	LD_LIBRARY_PATH=$(REALDEPDIR) go test -v -ldflags "-extldflags \"-L$(REALDEPDIR) -led25519_bip32\"" ./...
