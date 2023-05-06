@@ -32,7 +32,7 @@ const Bip39SeedLen = 64
 var (
 	pathErr    = fmt.Errorf("empty path supplied")
 	badSeedLen = fmt.Errorf("invalid seed length")
-	pointerErr = fmt.Errorf("error in wrapped function, got nil pointer")
+	PointerErr = fmt.Errorf("error in wrapped function, got nil pointer")
 )
 
 // Derive wraps the underlying CFFI function. It derives a new keypair from a path and a seed.
@@ -61,7 +61,7 @@ func Derive(path string, seed []byte) (key *[ArrayLen]byte, err error) {
 		C.size_t(pathLen),
 	)
 	if arrayPtr == nil {
-		return nil, pointerErr
+		return nil, PointerErr
 	}
 	defer C.derive_free_c(arrayPtr)
 

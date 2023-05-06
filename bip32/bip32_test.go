@@ -18,7 +18,7 @@ func TestGoodPath(t *testing.T) {
 func TestBadPath(t *testing.T) {
 	path := "bad path"
 	key, err := Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 }
 
@@ -52,50 +52,50 @@ func TestSeedLength(t *testing.T) {
 func TestNonHardenedPath(t *testing.T) {
 	path := "m/44'/540'/2/0'/0'"
 	key, err := Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathMalformed(t *testing.T) {
 	path := "m/44'/540'/2'/0'/"
 	key, err := Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 	path = "m/44'/540'/2'/0'/1'/"
 	key, err = Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathShort(t *testing.T) {
 	path := "m/44'"
 	key, err := Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 	path = "m"
 	key, err = Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathLong(t *testing.T) {
 	path := "m/44'/540'/2'/0'/1'/2'"
 	key, err := Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathBadPurpose(t *testing.T) {
 	path := "m/41'/540'/2'/0'/1'"
 	key, err := Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 }
 
 func TestPathBadCoinType(t *testing.T) {
 	path := "m/44'/542'/2'/0'/1'"
 	key, err := Derive(path, goodSeed)
-	require.Equal(t, pointerErr, err)
+	require.Equal(t, PointerErr, err)
 	require.Nil(t, key)
 }
 
