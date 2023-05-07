@@ -54,7 +54,7 @@ func Derive(path string, seed []byte) (key *[ed25519.PrivateKeySize]byte, err er
 	if arrayPtr == nil {
 		return nil, common.PointerErr
 	}
-	defer common.FreeCPointer(arrayPtr)
+	defer common.FreeCPointer(common.CUChar(arrayPtr))
 
 	// Convert the *mut u8 pointer to a Go byte slice
 	bytes := (*[ed25519.PrivateKeySize]byte)(unsafe.Pointer(arrayPtr))[:]

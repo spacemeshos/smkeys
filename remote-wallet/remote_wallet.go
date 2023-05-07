@@ -3,6 +3,10 @@ package remote_wallet
 /*
 	#include <stdint.h>
 
+	/// read_pubkey_from_ledger reads a pubkey from the ledger device specified by path and
+	/// derivation_path. If path is empty, the first ledger device found will be used. It returns
+	/// a pointer to the pubkey bytes on success, or null on failure. Note that the caller must free
+	/// the returned pointer by passing it back to Rust using, e.g., derive_free_c().
 	extern uint8_t *read_pubkey_from_ledger(const uint8_t *path,
 									 size_t pathlen,
 									 const uint8_t *derivation_path,
@@ -24,7 +28,7 @@ func ReadPubkeyFromLedger(path, derivationPath string) (key []byte, err error) {
 	if arrayPtr == nil {
 		return nil, common.PointerErr
 	}
-	defer common.FreeCPointer(arrayPtr)
+	defer common.FreeCPointer(common.CUChar(arrayPtr))
 
 	// Convert the C pointer to a Go byte slice
 	bytes := (*[ed25519.PublicKeySize]byte)(unsafe.Pointer(arrayPtr))[:]

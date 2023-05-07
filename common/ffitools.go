@@ -3,11 +3,10 @@ package common
 /*
 	#include <stdint.h>
 
-	/// free the memory allocated and returned by the derive functions by transferring ownership back to
+	/// free the memory allocated and returned by extern functions by transferring ownership back to
 	/// Rust. must be called on each pointer returned by the functions precisely once to ensure safety.
-	extern void derive_free_c(uint8_t *ptr);
+	extern void freeptr(uint8_t *ptr);
 */
-
 import "C"
 import (
 	"fmt"
@@ -20,8 +19,10 @@ var (
 	PointerErr = fmt.Errorf("error in wrapped function, got nil pointer")
 )
 
-func FreeCPointer(ptr *C.uint8_t) {
+type CUChar = *C.uchar
+
+func FreeCPointer(ptr CUChar) {
 	if ptr != nil {
-		C.derive_free_c(ptr)
+		C.freeptr(ptr)
 	}
 }
