@@ -1,47 +1,37 @@
 package remote_wallet
 
 /*
-	#include <stdarg.h>
-	#include <stddef.h>
 	#include <stdint.h>
-	#include <stdlib.h>
-	//#include <ostream.h>
-	//#include <new>
-
 
 	extern uint8_t *read_pubkey_from_ledger(const uint8_t *path,
 									 size_t pathlen,
 									 const uint8_t *derivation_path,
 									 size_t derivation_pathlen);
-
-	/// free the memory allocated and returned by the derive functions by transferring ownership back to
-	/// Rust. must be called on each pointer returned by the functions precisely once to ensure safety.
-	void free_c(uint8_t *ptr);
 */
 import "C"
 import (
-	"fmt"
-	"github.com/spacemeshos/smkeys/bip32"
+	"crypto/ed25519"
+	"github.com/spacemeshos/smkeys/common"
 	"unsafe"
 )
 
-func ReadPubkeyFromLedger(path, derivation_path string) (key []byte, err error) {
+func ReadPubkeyFromLedger(path, derivationPath string) (key []byte, err error) {
 	pathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(path)[0]))
 	pathLen := (C.size_t)(len(path))
-	derivation_pathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(derivation_path)[0]))
-	derivation_pathLen := (C.size_t)(len(derivation_path))
-	arrayPtr := C.read_pubkey_from_ledger(pathPtr, pathLen, derivation_pathPtr, derivation_pathLen)
+	derivationPathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(derivationPath)[0]))
+	derivationPathLen := (C.size_t)(len(derivationPath))
+	arrayPtr := C.read_pubkey_from_ledger(pathPtr, pathLen, derivationPathPtr, derivationPathLen)
 	if arrayPtr == nil {
-		return nil, bip32.PointerErr
+		return nil, common.PointerErr
 	}
-	defer C.free_c(arrayPtr)
+	defer common.FreeCPointer(arrayPtr)
 
 	// Convert the C pointer to a Go byte slice
-	bytes := (*[bip32.ArrayLen]byte)(unsafe.Pointer(arrayPtr))[:]
-	key = make([]byte, bip32.ArrayLen)
+	bytes := (*[ed25519.PublicKeySize]byte)(unsafe.Pointer(arrayPtr))[:]
+	key = make([]byte, ed25519.PublicKeySize)
 	bytesCopied := copy(key[:], bytes)
-	if bytesCopied != bip32.ArrayLen {
-		return nil, fmt.Errorf("error in key length")
+	if bytesCopied != ed25519.PublicKeySize {
+		return nil, common.KeyLenErr
 	}
 	//key = (*C.uint8_t)(unsafe.Pointer(arrayPtr))
 	return
