@@ -25,4 +25,4 @@ jobs:
         run: make deps
 
       - name: go test
-        run: make test
+        run: CI=true make test
