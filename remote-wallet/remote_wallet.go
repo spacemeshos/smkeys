@@ -1,16 +1,19 @@
 package remote_wallet
 
 /*
+	#include <stdbool.h>
 	#include <stdint.h>
 
 	/// read_pubkey_from_ledger reads a pubkey from the ledger device specified by path and
-	/// derivation_path. If path is empty, the first ledger device found will be used. It returns
+	/// derivation_path. If path is empty, the first ledger device found will be used. If confirm_key
+	/// is true, it will prompt the user to confirm the key on the device. It returns
 	/// a pointer to the pubkey bytes on success, or null on failure. Note that the caller must free
-	/// the returned pointer by passing it back to Rust using, e.g., derive_free_c().
+	/// the returned pointer by passing it back to Rust using sdkutils.free().
 	extern uint8_t *read_pubkey_from_ledger(const uint8_t *path,
 									 size_t pathlen,
 									 const uint8_t *derivation_path,
-									 size_t derivation_pathlen);
+									 size_t derivation_pathlen,
+									 bool confirm_key);
 */
 import "C"
 import (
@@ -19,12 +22,12 @@ import (
 	"unsafe"
 )
 
-func ReadPubkeyFromLedger(path, derivationPath string) (key []byte, err error) {
+func ReadPubkeyFromLedger(path, derivationPath string, confirmKey bool) (key []byte, err error) {
 	pathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(path)[0]))
 	pathLen := (C.size_t)(len(path))
 	derivationPathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(derivationPath)[0]))
 	derivationPathLen := (C.size_t)(len(derivationPath))
-	arrayPtr := C.read_pubkey_from_ledger(pathPtr, pathLen, derivationPathPtr, derivationPathLen)
+	arrayPtr := C.read_pubkey_from_ledger(pathPtr, pathLen, derivationPathPtr, derivationPathLen, C.bool(confirmKey))
 	if arrayPtr == nil {
 		return nil, common.PointerErr
 	}
