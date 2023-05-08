@@ -1,21 +1,25 @@
 package bip32
 
 // TODO: is it possible to read the C header info from the header file rather than hardcoding it here?
+// TODO (mafa): yes, we do that for libgpu-post and for libpostrs
 
 /*
 	#include <stdint.h>
+	#include <stdlib.h>
 
-	/// derive_c does the same thing as the above function, but is intended for use over the CFFI.
+	/// derive_c does the same thing as the above function, but is intended for use over the CFFI. - TODO(mafa): needs better description
 	/// it adds error handling in order to be friendlier to the FFI caller: in case of an error, it
-	/// prints the error and returns a null pointer.
-	/// note that the caller must free() the returned memory as it's not managed/freed here.
-	extern uint8_t *derive_c(const uint8_t *seed, size_t seedlen, const uint8_t *path, size_t pathlen);
+	/// prints the error and returns a null pointer. - TODO(mafa): imo it's easier to handle with a return error code
+	extern uint8_t derive_c(const uint8_t *seed, const char *path, uint8_t *out);
+
+	// TODO(mafa): having derive_c return an error code (or 0 if OK) and passing in the output buffer (we know the size on both sides)
+	// makes handling the FFI on both sides easier
 */
 import "C"
+
 import (
 	"crypto/ed25519"
 	"fmt"
-	"github.com/spacemeshos/smkeys/common"
 	"unsafe"
 )
 
@@ -23,45 +27,41 @@ import (
 const Bip39SeedLen = 64
 
 var (
-	badSeedLen = fmt.Errorf("invalid seed length")
+	ErrInvalidPath     = fmt.Errorf("invalid path")
+	ErrBadSeed         = fmt.Errorf("invalid seed length")
+	ErrNonHardenedPath = fmt.Errorf("non-hardened path not supported")
+	ErrUnknown         = fmt.Errorf("unknown error")
 )
 
 // Derive wraps the underlying CFFI function. It derives a new keypair from a path and a seed.
-func Derive(path string, seed []byte) (key *[ed25519.PrivateKeySize]byte, err error) {
-	pathLen := len(path)
-	seedLen := len(seed)
+func Derive(path string, seed []byte) ([]byte, error) {
+	// convert Go string to C-compatible byte array
+	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
 
-	// empty path and empty seed will both cause upstream errors, go ahead and catch them here.
-	// note: we don't attempt to actually parse the path here. if it contains less than two elements
-	// that will also cause upstream errors.
-	if pathLen < 1 {
-		return nil, common.PathErr
-	}
-	if seedLen != Bip39SeedLen {
-		return nil, badSeedLen
-	}
+	cSeed := C.CBytes(seed)
+	defer C.free(cSeed)
 
-	// Convert Go string to C-compatible byte array
-	pathBytes := []byte(path)
+	// Allocate a buffer for the output
+	cOut := (C.calloc(ed25519.PrivateKeySize, 1))
+	defer C.free(cOut)
 
 	// Pass the string to Rust
-	arrayPtr := C.derive_c(
-		(*C.uchar)(unsafe.Pointer(&seed[0])),
-		C.size_t(seedLen),
-		(*C.uchar)(unsafe.Pointer(&pathBytes[0])),
-		C.size_t(pathLen),
-	)
-	if arrayPtr == nil {
-		return nil, common.PointerErr
+	retVal := C.derive_c((*C.uchar)(cSeed), cPath, (*C.uchar)(cOut))
+	switch retVal { // TODO(mafa): error code definitions should be in the header file
+	case 0:
+		// all good
+	case 1:
+		return nil, ErrInvalidPath
+	case 2:
+		return nil, ErrBadSeed
+	case 3:
+		return nil, ErrNonHardenedPath
+	default:
+		return nil, ErrUnknown
 	}
-	defer common.FreeCPointer(common.CUChar(arrayPtr))
 
 	// Convert the *mut u8 pointer to a Go byte slice
-	bytes := (*[ed25519.PrivateKeySize]byte)(unsafe.Pointer(arrayPtr))[:]
-	key = new([ed25519.PrivateKeySize]byte)
-	bytesCopied := copy(key[:], bytes)
-	if bytesCopied != ed25519.PrivateKeySize {
-		return nil, fmt.Errorf("error in key length")
-	}
-	return
+	output := C.GoBytes(cOut, C.int(ed25519.PrivateKeySize))
+	return output, nil
 }
