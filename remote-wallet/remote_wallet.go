@@ -1,8 +1,6 @@
 package remote_wallet
 
 /*
-	#cgo CFLAGS: -I${SRCDIR}/../deps
-	#cgo LDFLAGS: -L${SRCDIR}/../deps -lspacemesh_remote_wallet
 	#include "remote-wallet.h"
 */
 import "C"

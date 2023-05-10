@@ -47,4 +47,7 @@ REALDEPDIR = $(shell realpath $(DEPDIR))
 
 .PHONY: test
 test:
-	LD_LIBRARY_PATH=$(REALDEPDIR) go test -v -ldflags "-extldflags \"-L$(REALDEPDIR) -led25519_bip32 -lspacemesh_remote_wallet\"" ./...
+	CGO_CFLAGS="-I$(REALDEPDIR)" \
+	CGO_LDFLAGS="-L$(REALDEPDIR)" \
+	LD_LIBRARY_PATH=$(REALDEPDIR) \
+	go test -v -ldflags "-extldflags \"-L$(REALDEPDIR) -led25519_bip32 -lspacemesh_remote_wallet\"" ./...

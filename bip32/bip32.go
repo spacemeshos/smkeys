@@ -1,8 +1,6 @@
 package bip32
 
 /*
-	#cgo CFLAGS: -I${SRCDIR}/../deps
-	#cgo LDFLAGS: -L${SRCDIR}/../deps -led25519_bip32
 	#include "ed25519_bip32.h"
 */
 import "C"
