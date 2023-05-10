@@ -1,45 +1,35 @@
 package remote_wallet
 
 /*
-	#include <stdbool.h>
-	#include <stdint.h>
-
-	/// read_pubkey_from_ledger reads a pubkey from the ledger device specified by path and
-	/// derivation_path. If path is empty, the first ledger device found will be used. If confirm_key
-	/// is true, it will prompt the user to confirm the key on the device. It returns
-	/// a pointer to the pubkey bytes on success, or null on failure. Note that the caller must free
-	/// the returned pointer by passing it back to Rust using sdkutils.free().
-	extern uint8_t *read_pubkey_from_ledger(const uint8_t *path,
-									 size_t pathlen,
-									 const uint8_t *derivation_path,
-									 size_t derivation_pathlen,
-									 bool confirm_key);
+	#cgo CFLAGS: -I${SRCDIR}/../deps
+	#cgo LDFLAGS: -L${SRCDIR}/../deps -lspacemesh_remote_wallet
+	#include "remote-wallet.h"
 */
 import "C"
 import (
 	"crypto/ed25519"
-	"github.com/spacemeshos/smkeys/common"
+	"fmt"
 	"unsafe"
 )
 
-func ReadPubkeyFromLedger(path, derivationPath string, confirmKey bool) (key []byte, err error) {
+func ReadPubkeyFromLedger(path, derivationPath string, confirmKey bool) (key *[ed25519.PublicKeySize]byte, err error) {
+	key = new([ed25519.PublicKeySize]byte)
+	keyPtr := (*C.uchar)(unsafe.Pointer(&key[0]))
 	pathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(path)[0]))
 	pathLen := (C.size_t)(len(path))
 	derivationPathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(derivationPath)[0]))
 	derivationPathLen := (C.size_t)(len(derivationPath))
-	arrayPtr := C.read_pubkey_from_ledger(pathPtr, pathLen, derivationPathPtr, derivationPathLen, C.bool(confirmKey))
-	if arrayPtr == nil {
-		return nil, common.PointerErr
+	status := C.read_pubkey_from_ledger(
+		pathPtr,
+		pathLen,
+		derivationPathPtr,
+		derivationPathLen,
+		C.bool(confirmKey),
+		keyPtr,
+	)
+	if status != 0 {
+		return nil, fmt.Errorf("error reading pubkey from ledger: %d", uint32(status))
 	}
-	defer common.FreeCPointer(common.CUChar(arrayPtr))
 
-	// Convert the C pointer to a Go byte slice
-	bytes := (*[ed25519.PublicKeySize]byte)(unsafe.Pointer(arrayPtr))[:]
-	key = make([]byte, ed25519.PublicKeySize)
-	bytesCopied := copy(key[:], bytes)
-	if bytesCopied != ed25519.PublicKeySize {
-		return nil, common.KeyLenErr
-	}
-	//key = (*C.uint8_t)(unsafe.Pointer(arrayPtr))
 	return
 }
