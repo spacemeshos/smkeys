@@ -12,18 +12,15 @@ import (
 
 func ReadPubkeyFromLedger(path, derivationPath string, confirmKey bool) (key *[ed25519.PublicKeySize]byte, err error) {
 	key = new([ed25519.PublicKeySize]byte)
-	keyPtr := (*C.uchar)(unsafe.Pointer(&key[0]))
-	pathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(path)[0]))
-	pathLen := (C.size_t)(len(path))
-	derivationPathPtr := (*C.uchar)(unsafe.Pointer(&[]byte(derivationPath)[0]))
-	derivationPathLen := (C.size_t)(len(derivationPath))
+	pathStr := C.CString(path)
+	defer C.free(unsafe.Pointer(pathStr))
+	derivationPathStr := C.CString(derivationPath)
+	defer C.free(unsafe.Pointer(derivationPathStr))
 	status := C.read_pubkey_from_ledger(
-		pathPtr,
-		pathLen,
-		derivationPathPtr,
-		derivationPathLen,
+		pathStr,
+		derivationPathStr,
 		C.bool(confirmKey),
-		keyPtr,
+		(*C.uchar)(unsafe.Pointer(&key[0])),
 	)
 	if status != 0 {
 		return nil, fmt.Errorf("error reading pubkey from ledger: %d", uint32(status))
