@@ -10,8 +10,10 @@ import (
 	"unsafe"
 )
 
-func ReadPubkeyFromLedger(path, derivationPath string, confirmKey bool) (key *[ed25519.PublicKeySize]byte, err error) {
-	key = new([ed25519.PublicKeySize]byte)
+func ReadPubkeyFromLedger(path, derivationPath string, confirmKey bool) (key []byte, err error) {
+	// Allocate a buffer for the output
+	cKey := C.calloc(C.size_t(ed25519.PublicKeySize), 1)
+	defer C.free(cKey)
 	pathStr := C.CString(path)
 	defer C.free(unsafe.Pointer(pathStr))
 	derivationPathStr := C.CString(derivationPath)
@@ -20,11 +22,12 @@ func ReadPubkeyFromLedger(path, derivationPath string, confirmKey bool) (key *[e
 		pathStr,
 		derivationPathStr,
 		C.bool(confirmKey),
-		(*C.uchar)(unsafe.Pointer(&key[0])),
+		(*C.uchar)(cKey),
 	)
 	if status != 0 {
 		return nil, fmt.Errorf("error reading pubkey from ledger: %d", uint32(status))
 	}
+	key = C.GoBytes(cKey, C.int(ed25519.PublicKeySize))
 
 	return
 }

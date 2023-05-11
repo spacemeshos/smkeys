@@ -20,8 +20,10 @@ var (
 )
 
 // Derive wraps the underlying CFFI function. It derives a new keypair from a path and a seed.
-func Derive(path string, seed []byte) (key *[ed25519.PrivateKeySize]byte, err error) {
-	key = new([ed25519.PrivateKeySize]byte)
+func Derive(path string, seed []byte) (key []byte, err error) {
+	// Allocate a buffer for the output
+	cKey := C.calloc(C.size_t(ed25519.PrivateKeySize), 1)
+	defer C.free(cKey)
 	pathStr := C.CString(path)
 	defer C.free(unsafe.Pointer(pathStr))
 	seedLen := len(seed)
@@ -41,11 +43,11 @@ func Derive(path string, seed []byte) (key *[ed25519.PrivateKeySize]byte, err er
 		(*C.uchar)(unsafe.Pointer(&seed[0])),
 		C.size_t(seedLen),
 		pathStr,
-		(*C.uchar)(unsafe.Pointer(&key[0])),
+		(*C.uchar)(cKey),
 	)
 	if status != 0 {
 		return nil, ffiErr
 	}
-
+	key = C.GoBytes(cKey, C.int(ed25519.PrivateKeySize))
 	return
 }
