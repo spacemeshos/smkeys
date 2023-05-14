@@ -1,7 +1,7 @@
 package remote_wallet
 
 /*
-	#include "remote-wallet.h"
+	#include "remote_wallet.h"
 */
 import "C"
 import (
