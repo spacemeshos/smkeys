@@ -4,7 +4,6 @@ DEPURL = https://github.com/spacemeshos/spacemesh-sdk/releases/download/
 DEPTAG = 0.0.1
 DEPLIB = spacemesh-sdk
 DEPDIR = deps
-REALDEPDIR = $(shell realpath $(DEPDIR))
 
 ifeq ($(OS),Windows_NT)
 #	MACHINE = WIN32
@@ -19,11 +18,9 @@ else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
 		MACHINE = linux
-		CGO_LDFLAGS := -Wl,-rpath,$$ORIGIN
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		MACHINE = macos
-		CGO_LDFLAGS := -Wl,-rpath,@loader_path
 	endif
 
 	UNAME_P := $(shell uname -p)
@@ -50,14 +47,16 @@ deps:
 	curl -sSfL $(DEPURL)/v$(DEPTAG)/$(FN) -o deps/$(FN)
 	cd $(DEPDIR) && tar -xzf $(FN) --exclude=LICENSE
 
+REALDEPDIR = $(shell realpath $(DEPDIR))
+
 .PHONY: test
 test:
 	CGO_CFLAGS="-I$(REALDEPDIR)" \
-	CGO_LDFLAGS="-L$(REALDEPDIR) $(CGO_LDFLAGS)" \
+	CGO_LDFLAGS="-L$(REALDEPDIR)" \
 	LD_LIBRARY_PATH=$(REALDEPDIR) \
-	go test -v -count 1 ./...
+	go test -v -count 1 -ldflags "-extldflags \"-L$(REALDEPDIR) -led25519_bip32 -lspacemesh_remote_wallet\"" ./...
 
 .PHONY: go-env
 go-env:
 	go env -w CGO_CFLAGS="-I$(REALDEPDIR)"
-	go env -w CGO_LDFLAGS="-L$(REALDEPDIR) $(CGO_LDFLAGS)"
+	go env -w CGO_LDFLAGS="-L$(REALDEPDIR)"
