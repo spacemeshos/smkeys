@@ -1,7 +1,7 @@
 # Based on https://gist.github.com/trosendal/d4646812a43920bfe94e
 
-DEPURL = https://github.com/spacemeshos/spacemesh-sdk/releases/download/
-DEPTAG = 0.0.1
+DEPURL = https://github.com/spacemeshos/spacemesh-sdk/releases/download
+DEPTAG = 1.0.1
 DEPLIB = spacemesh-sdk
 DEPDIR = deps
 
