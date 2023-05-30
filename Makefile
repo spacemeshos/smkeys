@@ -1,7 +1,7 @@
 # Based on https://gist.github.com/trosendal/d4646812a43920bfe94e
 
 DEPURL = https://github.com/spacemeshos/spacemesh-sdk/releases/download
-DEPTAG = 1.0.1
+DEPTAG = 1.0.3
 DEPLIB = spacemesh-sdk
 DEPDIR = deps
 
@@ -48,6 +48,6 @@ REALDEPDIR = $(shell realpath $(DEPDIR))
 .PHONY: test
 test:
 	CGO_CFLAGS="-I$(REALDEPDIR)" \
-	CGO_LDFLAGS="-L$(REALDEPDIR)" \
+	CGO_LDFLAGS="-L$(REALDEPDIR) -Wl,-rpath,@loader_path -Wl,-rpath,$(REALDEPDIR)" \
 	LD_LIBRARY_PATH=$(REALDEPDIR) \
 	go test -v -count 1 -ldflags "-extldflags \"-L$(REALDEPDIR) -led25519_bip32 -lspacemesh_remote_wallet\"" ./...
