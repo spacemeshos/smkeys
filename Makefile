@@ -47,8 +47,7 @@ REALDEPDIR = $(shell realpath $(DEPDIR))
 
 .PHONY: test
 test:
-	DYLD_LIBRARY_PATH=$(DYLD_LIBRARY_PATH):$(REALDEPDIR) \
 	CGO_CFLAGS="-I$(REALDEPDIR)" \
-	CGO_LDFLAGS="-L$(REALDEPDIR)" \
+	CGO_LDFLAGS="-L$(REALDEPDIR) -Wl,-rpath,@loader_path -Wl,-rpath,$(REALDEPDIR)" \
 	LD_LIBRARY_PATH=$(REALDEPDIR) \
 	go test -v -count 1 -ldflags "-extldflags \"-L$(REALDEPDIR) -led25519_bip32 -lspacemesh_remote_wallet\"" ./...
